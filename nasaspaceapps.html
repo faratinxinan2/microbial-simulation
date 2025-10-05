@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microbial Evolution in Low Gravity</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a192f;
+            color: #cdd6f4;
+            overflow-x: hidden;
+        }
+        .glassmorphism {
+            background: rgba(12, 28, 51, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 191, 255, 0.2);
+        }
+        .bar-chart-container {
+            position: relative;
+            height: 250px; 
+            width: 100%;
+        }
+        .line-chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+        .starry-bg {
+            background-image:
+                radial-gradient(white, rgba(255,255,255,0.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,0.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,0.1) 2px, transparent 40px),
+                radial-gradient(rgba(255,255,255,0.4), rgba(255,255,255,0.1) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+            animation: move-stars 200s linear infinite;
+        }
+        @keyframes move-stars {
+            from { background-position: 0 0, 40px 60px, 130px 270px, 70px 100px; }
+            to { background-position: -10000px 5000px, -10000px 5000px, -10000px 5000px, -10000px 5000px; }
+        }
+         /* New Slider Styles */
+        .slider-container {
+            position: relative;
+            width: 100%;
+        }
+        .slider-label-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .slider-label {
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+            color: #cdd6f4;
+        }
+        .slider-value {
+            font-size: 0.875rem; /* 14px */
+            font-weight: 600;
+        }
+        .slider-limit-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem; /* 12px */
+            color: #94a3b8; /* slate-400 */
+            margin-top: 0.25rem;
+        }
+        input[type="range"].custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #1e293b; /* slate-800 */
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"].custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 3px solid #0a192f; /* body bg */
+            cursor: pointer;
+            margin-top: -7px; /* Center thumb on track */
+            transition: transform 0.2s ease;
+        }
+         input[type="range"].custom-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        /* Custom Thumb Colors */
+        #gravity-slider::-webkit-slider-thumb { background-color: #38bdf8; } 
+        #radiation-slider::-webkit-slider-thumb { background-color: #facc15; }
+        #nutrients-slider::-webkit-slider-thumb { background-color: #4ade80; }
+        #duration-slider::-webkit-slider-thumb { background-color: #c084fc; }
+        /* Custom Progress Bar Variables */
+        #gravity-slider { --progress-color: #38bdf8; }
+        #radiation-slider { --progress-color: #facc15; }
+        #nutrients-slider { --progress-color: #4ade80; }
+        #duration-slider { --progress-color: #c084fc; }
+        /* Value Text Colors */
+        #gravity-value { color: #38bdf8; }
+        #radiation-value { color: #facc15; }
+        #nutrients-value { color: #4ade80; }
+        #duration-value { color: #c084fc; }
+
+        /* Custom Dropdown */
+        .custom-select-container {
+            position: relative;
+        }
+        .custom-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background-color: #1e293b;
+            border: 1px solid #38bdf8;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            width: 220px;
+        }
+        .custom-select-options {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #1e293b;
+            border: 1px solid #38bdf8;
+            border-radius: 0.5rem;
+            margin-top: 0.25rem;
+            z-index: 10;
+            width: 220px;
+            display: none; /* Initially hidden */
+        }
+        .custom-select-option {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        .custom-select-option:hover {
+            background-color: #334155;
+        }
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+        .heatmap-cell {
+            transition: background-color 0.5s ease;
+        }
+        #populationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .info-card ul {
+            list-style-position: inside;
+        }
+        .info-card ul li::marker {
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="starry-bg">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-8">
+            <div class="flex items-center">
+                <svg class="w-12 h-12 text-cyan-400 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0-2.433 2.47.522.522 0 0 1-.316.316A8.21 8.21 0 0 0 5.214 15.362a8.252 8.252 0 0 1 15.548-6.038c.12-.397.18-.81.18-1.234a8.25 8.25 0 0 0-5.638-7.876Z" />
+                </svg>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-slate-100">Microbial Evolution in Low Gravity</h1>
+                    <p class="text-sm text-slate-400">ISS Research Data Visualization</p>
+                </div>
+            </div>
+            <div class="custom-select-container mt-4 sm:mt-0">
+                <div id="custom-select-trigger" class="custom-select-trigger">
+                    <!-- Selected option will be populated here by JS -->
+                </div>
+                <div id="custom-select-options" class="custom-select-options">
+                    <!-- Options will be populated here by JS -->
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Main Content Area -->
+            <main class="lg:col-span-3 space-y-6">
+                 <!-- Simulation Parameters Card -->
+                <div class="glassmorphism rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-6">
+                        Simulation Parameters
+                    </h2>
+                    <!-- Sliders Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6">
+                        <!-- Gravity Slider -->
+                        <div class="slider-container">
+                            <div class="slider-label-container">
+                                <label for="gravity-slider" class="slider-label">Gravity</label>
+                                <span id="gravity-value" class="slider-value">0.01g</span>
+                            </div>
+                            <input id="gravity-slider" type="range" min="0" max="1" step="0.01" value="0.00" class="custom-slider w-full">
+                            <div class="slider-limit-labels">
+                                <span>0g</span>
+                                <span>1g</span>
+                            </div>
+                        </div>
+                        <!-- Radiation Slider -->
+                        <div class="slider-container">
+                            <div class="slider-label-container">
+                                <label for="radiation-slider" class="slider-label">Radiation</label>
+                                <span id="radiation-value" class="slider-value">0.8 mGy/day</span>
+                            </div>
+                            <input id="radiation-slider" type="range" min="0" max="2" step="0.1" value="0.8" class="custom-slider w-full">
+                            <div class="slider-limit-labels">
+                                <span>0</span>
+                                <span>2.0</span>
+                            </div>
+                        </div>
+                        <!-- Nutrients Slider -->
+                        <div class="slider-container">
+                            <div class="slider-label-container">
+                                <label for="nutrients-slider" class="slider-label">Nutrients</label>
+                                <span id="nutrients-value" class="slider-value">75%</span>
+                            </div>
+                            <input id="nutrients-slider" type="range" min="0" max="100" step="1" value="75" class="custom-slider w-full">
+                            <div class="slider-limit-labels">
+                                <span>0%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                        <!-- Mission Duration Slider -->
+                        <div class="slider-container">
+                            <div class="slider-label-container">
+                                <label for="duration-slider" class="slider-label">Mission Duration</label>
+                                <span id="duration-value" class="slider-value">180 days</span>
+                            </div>
+                            <input id="duration-slider" type="range" min="1" max="365" step="1" value="180" class="custom-slider w-full">
+                            <div class="slider-limit-labels">
+                                <span>1d</span>
+                                <span>365d</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPOSITIONED: Mutation Rate & Population Simulation -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <!-- Mutation Rate Chart -->
+                    <div class="glassmorphism rounded-lg p-6 lg:col-span-3">
+                        <h3 class="text-lg font-semibold mb-4">Mutation Rate Over Time</h3>
+                        <div class="line-chart-container">
+                            <canvas id="mutationRateChart"></canvas>
+                        </div>
+                        <div class="text-center text-sm text-slate-400 mt-2 font-semibold">-> Mutation Rate</div>
+                    </div>
+                    
+                    <!-- Microbial Population Simulation -->
+                    <div class="glassmorphism rounded-lg p-6 lg:col-span-2">
+                         <div class="flex flex-col sm:flex-row justify-between items-center mb-4 h-full">
+                            <div>
+                                <h3 class="text-lg font-semibold mb-2 sm:mb-0">Microbial Population</h3>
+                                <div id="population-counter" class="text-sm font-semibold mt-2">
+                                    <span class="text-slate-100">Normal: 2,000</span><br>
+                                    <span class="text-red-500">Mutated: 0</span>
+                                </div>
+                                <button id="fast-track-btn" class="mt-4 text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200">
+                                    Fast Track Results
+                                </button>
+                            </div>
+                            <div class="w-full h-48 sm:w-48 sm:h-full bg-slate-900/50 rounded-md overflow-hidden mt-4 sm:mt-0">
+                                 <canvas id="populationCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+                    <!-- Microbial Abundance Heatmap -->
+                    <div class="glassmorphism rounded-lg p-6 lg:col-span-2">
+                        <h3 class="text-lg font-semibold mb-4">ISS Module Abundance</h3>
+                        <div id="heatmap-grid" class="grid grid-cols-2 gap-3 text-sm">
+                             <!-- Cells injected by JS -->
+                        </div>
+                        <div class="mt-4 text-xs text-slate-400 flex items-center justify-between">
+                            <span>Low Abundance</span>
+                            <div class="flex items-center space-x-1">
+                                <div class="w-3 h-3 rounded-sm" style="background-color: #164e63;"></div>
+                                <div class="w-3 h-3 rounded-sm" style="background-color: #0e7490;"></div>
+                                <div class="w-3 h-3 rounded-sm" style="background-color: #0891b2;"></div>
+                                <div class="w-3 h-3 rounded-sm" style="background-color: #06b6d4;"></div>
+                                <div class="w-3 h-3 rounded-sm" style="background-color: #22d3ee;"></div>
+                            </div>
+                            <span>High Abundance</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Earth vs Space Comparison -->
+                    <div class="glassmorphism rounded-lg p-6 lg:col-span-3">
+                        <h3 class="text-lg font-semibold mb-4">Earth vs. Space Comparison</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="text-center p-4 rounded-lg bg-slate-800">
+                                <div class="text-xs text-slate-400">Earth Baseline</div>
+                                <div id="earth-baseline-value" class="text-3xl font-bold text-slate-100">0.00</div>
+                                <div class="text-xs text-slate-400">relative units</div>
+                            </div>
+                            <div class="text-center p-4 rounded-lg bg-slate-800 border-2 border-cyan-500">
+                                <div class="text-xs text-cyan-400">Space-Adapted</div>
+                                <div id="space-adapted-value" class="text-3xl font-bold text-cyan-400">0.00</div>
+                                <div class="text-xs text-cyan-400">relative units</div>
+                            </div>
+                        </div>
+                        <div class="bar-chart-container">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                        <div id="comparison-summary" class="text-center text-sm font-semibold mt-2">
+                            <!-- Summary text injected by JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- NEW: Microbe Information Section -->
+                <div class="glassmorphism rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-6">Microbe Information</h2>
+                    <div id="microbe-info-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Microbe cards will be injected here by JS -->
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- NEW: Sidebar -->
+            <aside class="lg:col-span-1 space-y-6">
+                 <!-- ISS Study Data -->
+                <div class="glassmorphism rounded-lg p-6">
+                     <h2 class="text-lg font-semibold mb-4 flex items-center">
+                       <svg class="w-6 h-6 mr-2 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0.0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12h7.5" /></svg>
+                        ISS Study Data
+                    </h2>
+                    <div id="reference-data-panel" class="space-y-4 text-sm">
+                        <!-- Dynamic content will be injected here -->
+                    </div>
+                </div>
+
+                 <!-- All Microbes Data -->
+                <div class="glassmorphism rounded-lg p-6">
+                    <h2 class="text-lg font-semibold mb-4">All Microbes Data</h2>
+                    <div id="all-microbes-panel" class="space-y-4 text-sm">
+                        <!-- All microbes data injected by JS -->
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Footer / Data Sources -->
+        <footer class="mt-12 text-slate-400 text-sm">
+            <div>
+                 <h2 class="text-xl font-semibold mb-6 text-slate-100">Research Sources & References</h2>
+                 <p class="mb-6 max-w-3xl">This visualization is based on published scientific research from NASA, ESA, and peer-reviewed journals studying microbial behavior in the unique environment of the International Space Station.</p>
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            NASA Microbial Tracking Study
+                            <a href="https://www.nasa.gov/mission_pages/station/research/experiments/explorer/Investigation.html#id=7679" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Multi-year study of microbial populations aboard the ISS</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2019-2023</span>
+                            <a href="https://www.nasa.gov/mission_pages/station/research/experiments/explorer/Investigation.html#id=7679" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+
+                    <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            Microbiome of the ISS
+                            <a href="https://www.nature.com/articles/s41526-020-00125-z" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Morrison et al. - Comprehensive analysis of ISS microbiome</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2019</span>
+                            <a href="https://www.nature.com/articles/s41526-020-00125-z" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+
+                     <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            Microbial Evolution in Space
+                             <a href="https://www.nature.com/articles/s41526-017-0032-1" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Zea et al. - Study on genetic changes in microorganisms</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2017</span>
+                            <a href="https://www.nature.com/articles/s41526-017-0032-1" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+
+                    <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            Pathogen Virulence
+                             <a href="https://www.mdpi.com/2075-1729/13/2/343" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Kim et al. - Research on increased virulence of pathogens</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2020</span>
+                            <a href="https://www.mdpi.com/2075-1729/13/2/343" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+                    
+                    <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            Biofilm Formation in Space
+                             <a href="https://www.frontiersin.org/articles/10.3389/fmicb.2021.652518/full" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Castro et al. - Analysis of biofilm architecture changes</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2018</span>
+                            <a href="https://www.frontiersin.org/articles/10.3389/fmicb.2021.652518/full" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+
+                    <div class="glassmorphism rounded-lg p-4 text-left">
+                        <h3 class="font-semibold text-slate-100">
+                            Eukaryotic Adaptation Study
+                             <a href="https://www.nasa.gov/mission_pages/station/research/news/yeast-in-space-helps-elucidate-cell-development/" target="_blank" rel="noopener noreferrer" class="inline-block text-cyan-400 hover:text-cyan-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                        </h3>
+                        <p class="text-xs text-slate-300 mt-1">Murakami & Kuroda - Yeast cellular adaptation</p>
+                        <div class="text-xs mt-3 flex justify-between items-center">
+                            <span class="text-slate-400">2021</span>
+                            <a href="https://www.nasa.gov/mission_pages/station/research/news/yeast-in-space-helps-elucidate-cell-development/" target="_blank" rel="noopener noreferrer" class="font-semibold text-cyan-400 hover:text-cyan-300">View Source</a>
+                        </div>
+                    </div>
+
+                 </div>
+                 <p class="mt-8">Prototype created for conceptual demonstration.</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- DATA STORE ---
+        const microbeData = {
+            'Bacillus subtilis': {
+                color: '#38bdf8', subName: 'B. subtilis',
+                description: 'A model organism for studying bacterial adaptation to space',
+                growthRate: 0.85, mutationRate: 0.42,
+                effects: ['Increased biofilm formation in microgravity', 'Enhanced stress resistance mechanisms', 'Modified sporulation patterns', 'Altered cell wall composition'],
+                baseMutationRate: 0.005, earthData: { growth: 0.85 },
+                issReference: { radiation: '0.5-1.0 mGy/day', growthRate: '85% of Earth baseline', mutationFreq: '2.4x increase', source: 'Morrison et al. (2019) - Microbiome study' },
+                factors: { gravity: 0.5, radiation: 0.1, nutrients: 0.5 }
+            },
+            'Escherichia coli': {
+                color: '#4ade80', subName: 'E. coli',
+                description: 'Extensively studied for genetic changes in space environments',
+                growthRate: 1.2, mutationRate: 0.68,
+                effects: ['Accelerated growth rates in low gravity', 'Increased antibiotic resistance', 'Enhanced horizontal gene transfer', 'Modified membrane permeability'],
+                baseMutationRate: 0.012, earthData: { growth: 1.2 },
+                issReference: { radiation: '0.6-1.2 mGy/day', growthRate: '120% of Earth baseline', mutationFreq: '3.2x increase', source: 'Wilson, J.W. (2007) - Gene expression' },
+                factors: { gravity: 0.6, radiation: 0.8, nutrients: 0.6 }
+            },
+            'Staphylococcus aureus': {
+                color: '#facc15', subName: 'S. aureus',
+                description: 'Important pathogen showing increased virulence in space',
+                growthRate: 0.95, mutationRate: 0.89,
+                effects: ['Heightened virulence factors', 'Thicker cell walls in microgravity', 'Increased tolerance to antimicrobials', 'Enhanced biofilm architecture'],
+                baseMutationRate: 0.015, earthData: { growth: 0.95 },
+                issReference: { radiation: '0.5-1.0 mGy/day', growthRate: '95% of Earth baseline', mutationFreq: '4.1x increase', source: 'Kim, et al. (2020) - Pathogen virulence' },
+                factors: { gravity: 0.7, radiation: 0.5, nutrients: 0.4 }
+            },
+            'Pseudomonas aeruginosa': {
+                color: '#67e8f9', subName: 'P. aeruginosa',
+                description: 'Opportunistic pathogen known for its robust biofilm formation',
+                growthRate: 0.90, mutationRate: 0.55,
+                effects: ['Forms unique 3D "column-and-canopy" biofilms', 'Increased antibiotic resistance in biofilms', 'Altered cell surface properties', 'Changes in quorum sensing'],
+                baseMutationRate: 0.006, earthData: { growth: 0.90 },
+                issReference: { radiation: '0.7-1.5 mGy/day', growthRate: '110% of Earth baseline', mutationFreq: '3.5x increase', source: 'Singh, N.K. (2018) - Biofilm formation' },
+                factors: { gravity: 0.7, radiation: 0.3, nutrients: 0.3 }
+            },
+            'Saccharomyces cerevisiae': {
+                color: '#c084fc', subName: 'S. cerevisiae',
+                description: 'A simple eukaryote model organism for DNA damage studies',
+                growthRate: 1.0, mutationRate: 0.35,
+                effects: ['Changes in stress response genes', 'Altered cell division patterns', 'Modified mitochondrial activity', 'Enhanced DNA repair mechanisms'],
+                baseMutationRate: 0.004, earthData: { growth: 1.0 },
+                issReference: { radiation: '0.4-0.9 mGy/day', growthRate: '72% of Earth baseline', mutationFreq: '2.8x increase', source: 'Nislow, C. (2015) - Yeast genomics' },
+                factors: { gravity: 0.1, radiation: 0.8, nutrients: 0.5 }
+            }
+        };
+
+        const issModules = {
+            'US Lab Module': 29.3, 'Japanese Module': 9.6, 'European Module': 17.1,
+            'Russian Segment': 29.5, 'Node 2': 9.5, 'Cupola': 16.2,
+            'Airlock': 44.5, 'Service Module': 31.9
+        };
+
+        // --- STATE ---
+        let selectedMicrobe = 'Bacillus subtilis';
+        let finalDotsToMutate = 0;
+
+
+        // --- DOM ELEMENT REFERENCES ---
+        const gravitySlider = document.getElementById('gravity-slider');
+        const radiationSlider = document.getElementById('radiation-slider');
+        const nutrientsSlider = document.getElementById('nutrients-slider');
+        const durationSlider = document.getElementById('duration-slider');
+        const gravityValue = document.getElementById('gravity-value');
+        const radiationValue = document.getElementById('radiation-value');
+        const nutrientsValue = document.getElementById('nutrients-value');
+        const durationValue = document.getElementById('duration-value');
+        const referencePanel = document.getElementById('reference-data-panel');
+        const allMicrobesPanel = document.getElementById('all-microbes-panel');
+        const selectTrigger = document.getElementById('custom-select-trigger');
+        const selectOptions = document.getElementById('custom-select-options');
+        const heatmapGrid = document.getElementById('heatmap-grid');
+        const earthBaselineValue = document.getElementById('earth-baseline-value');
+        const spaceAdaptedValue = document.getElementById('space-adapted-value');
+        const comparisonSummary = document.getElementById('comparison-summary');
+        const populationCounter = document.getElementById('population-counter');
+        const microbeInfoGrid = document.getElementById('microbe-info-grid');
+        const fastTrackBtn = document.getElementById('fast-track-btn');
+
+
+        // --- CHART & SIMULATION GLOBALS ---
+        let comparisonChart;
+        let mutationRateChart;
+        let populationCanvas, populationCtx;
+        const POPULATION_SIZE = 2000;
+        const DOTS_TO_DRAW = 2000;
+        let microbes = [];
+        let timelineAnimationId = null;
+        let populationAnimationInterval = null;
+        const DOT_RADIUS = 2.5;
+
+        // --- INITIALIZATION ---
+        function initializeCharts() {
+            Chart.defaults.color = '#cdd6f4';
+            Chart.defaults.borderColor = 'rgba(100, 116, 139, 0.3)';
+            
+            const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(comparisonCtx, {
+                type: 'bar',
+                data: { labels: ['Earth', 'Space'], datasets: [{ label: 'Growth Rate', data: [0, 0], backgroundColor: ['#64748b', '#22d3ee'], borderWidth: 1, borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, 0.2)' }, max: 1.5, title: { display: true, text: 'Relative Growth Rate'} }, y: { grid: { display: false } } }, plugins: { legend: { display: false } }, animation: { duration: 800 } }
+            });
+
+            const mutationCtx = document.getElementById('mutationRateChart').getContext('2d');
+            mutationRateChart = new Chart(mutationCtx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Mutation Rate', data: [], borderColor: '#facc15', tension: 0.4, pointRadius: 0, fill: false }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, title: { display: true, text: 'Mutation Rate (x10⁻³)' }, grid: { color: 'rgba(100, 116, 139, 0.2)' }, max: 60 }, x: { grid: { display: false }, title: { display: true, text: 'Duration (Days)'} } }, plugins: { legend: { display: false } }, animation: false }
+            });
+        }
+
+        function initializePopulationSimulation() {
+            populationCanvas = document.getElementById('populationCanvas');
+            populationCtx = populationCanvas.getContext('2d');
+            const container = populationCanvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            populationCanvas.width = container.clientWidth * dpr;
+            populationCanvas.height = container.clientHeight * dpr;
+            populationCtx.scale(dpr, dpr);
+            populationCanvas.style.width = `${container.clientWidth}px`;
+            populationCanvas.style.height = `${container.clientHeight}px`;
+            
+            microbes = [];
+            const centerX = container.clientWidth / 2;
+            const centerY = container.clientHeight / 2;
+
+            for (let i = 0; i < DOTS_TO_DRAW; i++) {
+                let x, y, hasCollision;
+                let attempts = 0;
+                do {
+                    hasCollision = false;
+                    x = Math.random() * (container.clientWidth - DOT_RADIUS * 2) + DOT_RADIUS;
+                    y = Math.random() * (container.clientHeight - DOT_RADIUS * 2) + DOT_RADIUS;
+
+                    for (const other of microbes) {
+                        const distance = Math.hypot(x - other.x, y - other.y);
+                        if (distance < DOT_RADIUS * 2) {
+                            hasCollision = true;
+                            break;
+                        }
+                    }
+                    attempts++;
+                } while (hasCollision && attempts < 100);
+
+                microbes.push({ x, y, mutated: false, distanceSq: Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2) });
+            }
+        }
+
+        function updateSliderProgress(slider) {
+            const min = parseFloat(slider.min);
+            const max = parseFloat(slider.max);
+            const val = parseFloat(slider.value);
+            const percentage = ((val - min) * 100) / (max - min);
+            const color = getComputedStyle(slider).getPropertyValue('--progress-color');
+            const trackColor = '#1e293b';
+            slider.style.background = `linear-gradient(to right, ${color} ${percentage}%, ${trackColor} ${percentage}%)`;
+        }
+
+        function populateMicrobeSelector() {
+            const triggerHTML = `<div class="flex items-center"><span class="color-dot" style="background-color: ${microbeData[selectedMicrobe].color};"></span><span>${selectedMicrobe}</span></div><svg class="w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>`;
+            selectTrigger.innerHTML = triggerHTML;
+            let optionsHTML = '';
+            for (const microbeName in microbeData) {
+                optionsHTML += `<div class="custom-select-option" data-value="${microbeName}"><span class="color-dot" style="background-color: ${microbeData[microbeName].color};"></span><span>${microbeName}</span></div>`;
+            }
+            selectOptions.innerHTML = optionsHTML;
+            document.querySelectorAll('.custom-select-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    selectedMicrobe = option.getAttribute('data-value');
+                    populateMicrobeSelector();
+                    selectOptions.style.display = 'none';
+                    updateDashboard();
+                });
+            });
+        }
+
+        function populateHeatmapGrid() {
+            let gridHTML = '';
+            for (const moduleName in issModules) {
+                gridHTML += `<div id="module-${moduleName.replace(/\s+/g, '-')}" class="heatmap-cell p-3 rounded-md bg-cyan-900/50"><div class="font-semibold text-slate-100">${moduleName}</div><div class="text-xl font-bold text-white">0.0</div><div class="text-xs text-slate-300">CFU/cm²</div></div>`;
+            }
+            heatmapGrid.innerHTML = gridHTML;
+        }
+        
+        function populateAllMicrobesData() {
+            let panelHTML = '';
+            for(const microbeName in microbeData) {
+                const data = microbeData[microbeName];
+                panelHTML += `
+                    <div class="p-3 bg-slate-800/50 rounded-md">
+                        <div class="flex items-center mb-1">
+                            <span class="color-dot" style="background-color: ${data.color};"></span>
+                            <span class="font-semibold text-slate-100">${microbeName}</span>
+                        </div>
+                        <div class="text-xs text-slate-300 pl-7">
+                            <p>Growth: ${data.issReference.growthRate}</p>
+                            <p>Mutation: ${data.issReference.mutationFreq}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            allMicrobesPanel.innerHTML = panelHTML;
+        }
+
+        function populateMicrobeInfo() {
+            let gridHTML = '';
+            for (const microbeName in microbeData) {
+                const data = microbeData[microbeName];
+                gridHTML += `
+                    <div class="info-card glassmorphism rounded-lg p-6 flex flex-col">
+                        <div class="flex items-center mb-2">
+                            <span class="color-dot" style="background-color: ${data.color};"></span>
+                            <div>
+                                <h4 class="font-bold text-lg text-slate-100">${microbeName}</h4>
+                                <p class="text-sm text-slate-400 italic">${data.subName}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 flex-grow">${data.description}</p>
+                        <div class="grid grid-cols-2 gap-2 text-center mb-4">
+                            <div class="bg-slate-800/50 p-2 rounded">
+                                <div class="text-xs text-slate-400">Growth Rate</div>
+                                <div class="text-lg font-bold">${data.growthRate.toFixed(2)}</div>
+                            </div>
+                            <div class="bg-slate-800/50 p-2 rounded">
+                                <div class="text-xs text-slate-400">Mutation Rate</div>
+                                <div class="text-lg font-bold">${data.mutationRate.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold mb-2 text-slate-200">Space Adaptation Effects:</h5>
+                            <ul class="space-y-1 text-sm text-slate-300 list-disc">
+                                ${data.effects.map(effect => `<li>${effect}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+            microbeInfoGrid.innerHTML = gridHTML;
+        }
+
+        function updateDashboard() {
+            if (timelineAnimationId) cancelAnimationFrame(timelineAnimationId);
+            if (populationAnimationInterval) clearInterval(populationAnimationInterval);
+
+            // 1. Get values
+            const gravity = parseFloat(gravitySlider.value);
+            const radiation = parseFloat(radiationSlider.value);
+            const nutrients = parseFloat(nutrientsSlider.value);
+            const duration = parseInt(durationSlider.value);
+            const data = microbeData[selectedMicrobe];
+
+            // 2. Update UI
+            gravityValue.textContent = `${gravity.toFixed(2)}g`;
+            radiationValue.textContent = `${radiation.toFixed(1)} mGy/day`;
+            nutrientsValue.textContent = `${nutrients}%`;
+            durationValue.textContent = `${duration} days`;
+            [gravitySlider, radiationSlider, nutrientsSlider, durationSlider].forEach(updateSliderProgress);
+            referencePanel.innerHTML = `<div class="font-semibold text-base flex items-center mb-3"><span class="color-dot" style="background-color: ${data.color};"></span>${selectedMicrobe}</div><div class="space-y-3"><div class="p-3 bg-slate-800 rounded-md"><div class="text-xs text-slate-400">Radiation Dose</div><div class="font-semibold text-slate-100">${data.issReference.radiation}</div></div><div class="p-3 bg-slate-800 rounded-md"><div class="text-xs text-slate-400">Growth Rate</div><div class="font-semibold text-slate-100">${data.issReference.growthRate}</div></div><div class="p-3 bg-slate-800 rounded-md"><div class="text-xs text-slate-400">Mutation Frequency</div><div class="font-semibold text-slate-100">${data.issReference.mutationFreq}</div></div><div class="p-3 bg-slate-800 rounded-md"><div class="text-xs text-slate-400">Study Reference</div><div class="font-semibold text-slate-100 truncate">${data.issReference.source}</div></div></div>`;
+
+            // 3. Comparison Chart Calculations
+            const earthBaseline = data.earthData.growth;
+            const gravityEffect = 1 + ((1 - gravity) * data.factors.gravity);
+            const radiationEffect = 1 - ((radiation / 2.0) * data.factors.radiation * 0.5);
+            const nutrientEffect = (nutrients / 100) * 0.5 + 0.5;
+            const durationEffect = 1 + (duration / 365 * 0.15);
+            let spaceAdaptedGrowth = Math.max(0.1, Math.min(1.5, earthBaseline * gravityEffect * radiationEffect * nutrientEffect * durationEffect));
+            earthBaselineValue.textContent = earthBaseline.toFixed(2);
+            spaceAdaptedValue.textContent = spaceAdaptedGrowth.toFixed(2);
+            comparisonChart.data.datasets[0].data = [earthBaseline, spaceAdaptedGrowth];
+            comparisonChart.update();
+            const percentageChange = ((spaceAdaptedGrowth - earthBaseline) / earthBaseline) * 100;
+            comparisonSummary.innerHTML = `Change: <span class="${percentageChange >= 0 ? 'text-green-400' : 'text-red-400'}">${percentageChange.toFixed(1)}%</span> from Earth baseline`;
+        
+            // 4. Heatmap Calculation
+            const abundanceFactor = spaceAdaptedGrowth / earthBaseline;
+            const colors = ['#164e63', '#0e7490', '#0891b2', '#06b6d4', '#22d3ee'];
+            for (const moduleName in issModules) {
+                const cell = document.getElementById(`module-${moduleName.replace(/\s+/g, '-')}`);
+                const valueEl = cell.querySelector('.text-xl');
+                const newCFU = issModules[moduleName] * abundanceFactor * (0.8 + Math.random() * 0.4);
+                valueEl.textContent = newCFU.toFixed(1);
+                const colorIndex = Math.min(colors.length - 1, Math.floor((newCFU / 50) * colors.length));
+                cell.style.backgroundColor = colors[colorIndex];
+            }
+
+            // 5. Mutation Timeline Calculation
+            const gravityStress = 1 + ((1 - Math.max(0.01, gravity)) * data.factors.gravity);
+            const radiationStress = 1 + ((radiation / 0.5) * data.factors.radiation);
+            const nutrientStress = 1 + (((100 - nutrients) / 100) * data.factors.nutrients);
+            const dailyMutationRate = data.baseMutationRate * gravityStress * radiationStress * nutrientStress;
+            let cumulativeMutations = dailyMutationRate * 50;
+            const fullMutationData = [];
+            const fullLabels = [];
+            const step = Math.max(1, Math.floor(duration / 30));
+            for (let day = 0; day <= duration; day += step) {
+                cumulativeMutations += dailyMutationRate * step * (1 + Math.random() * 0.1 - 0.05);
+                fullLabels.push(day);
+                fullMutationData.push(cumulativeMutations);
+            }
+            if (fullLabels.length > 0 && fullLabels[fullLabels.length - 1] < duration) {
+                fullLabels.push(duration);
+                fullMutationData.push(cumulativeMutations + dailyMutationRate * (duration - fullLabels[fullLabels.length-2]));
+            }
+            mutationRateChart.data.datasets[0].borderColor = data.color;
+            startTimelineAnimation(fullLabels, fullMutationData, 2000);
+            
+            // 6. Population Animation
+            const finalMutationValue = fullMutationData.length > 0 ? fullMutationData[fullMutationData.length - 1] : 0;
+            const finalVisualProgress = Math.min(finalMutationValue / 60, 1.0);
+            finalDotsToMutate = Math.floor(DOTS_TO_DRAW * finalVisualProgress);
+            
+            animatePopulation(finalDotsToMutate);
+        }
+
+        function startTimelineAnimation(fullLabels, fullData, duration) {
+            let startTime = null;
+            const animationStep = (timestamp) => {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const currentDataIndex = Math.floor(progress * (fullData.length - 1));
+                mutationRateChart.data.labels = fullLabels.slice(0, currentDataIndex + 1);
+                mutationRateChart.data.datasets[0].data = fullData.slice(0, currentDataIndex + 1);
+                mutationRateChart.update('none');
+                if (progress < 1) timelineAnimationId = requestAnimationFrame(animationStep);
+            };
+            timelineAnimationId = requestAnimationFrame(animationStep);
+        }
+
+        function animatePopulation(targetCount) {
+            if (populationAnimationInterval) clearInterval(populationAnimationInterval);
+            
+            microbes.forEach(m => m.mutated = false);
+            microbes.sort((a, b) => a.distanceSq - b.distanceSq);
+            let currentMutatedCount = 0;
+            drawPopulation();
+
+            populationCounter.innerHTML = `<span class="text-slate-100">Normal: ${POPULATION_SIZE.toLocaleString()}</span><br><span class="text-red-500">Mutated: 0</span>`;
+
+            populationAnimationInterval = setInterval(() => {
+                if (currentMutatedCount < targetCount) {
+                    microbes[currentMutatedCount].mutated = true;
+                    currentMutatedCount++;
+                    
+                    populationCounter.innerHTML = `<span class="text-slate-100">Normal: ${(POPULATION_SIZE - currentMutatedCount).toLocaleString()}</span><br><span class="text-red-500">Mutated: ${currentMutatedCount.toLocaleString()}</span>`;
+                    
+                    drawPopulation();
+                } else {
+                    clearInterval(populationAnimationInterval);
+                    populationAnimationInterval = null;
+                }
+            }, 125);
+        }
+        
+        function fastTrackPopulation() {
+            if (populationAnimationInterval) clearInterval(populationAnimationInterval);
+            
+            microbes.forEach((m, index) => {
+                m.mutated = index < finalDotsToMutate;
+            });
+            
+            populationCounter.innerHTML = `<span class="text-slate-100">Normal: ${(POPULATION_SIZE - finalDotsToMutate).toLocaleString()}</span><br><span class="text-red-500">Mutated: ${finalDotsToMutate.toLocaleString()}</span>`;
+            
+            drawPopulation();
+        }
+
+        function drawPopulation() {
+             if (!populationCtx) return;
+             const container = populationCanvas.parentElement;
+             populationCtx.clearRect(0, 0, container.clientWidth, container.clientHeight);
+             for (const microbe of microbes) {
+                populationCtx.beginPath();
+                populationCtx.arc(microbe.x, microbe.y, DOT_RADIUS, 0, Math.PI * 2);
+                populationCtx.fillStyle = microbe.mutated ? 'rgba(239, 68, 68, 0.9)' : 'rgba(255, 255, 255, 0.8)';
+                populationCtx.fill();
+             }
+        }
+
+        function addEventListeners() {
+            [gravitySlider, radiationSlider, nutrientsSlider, durationSlider].forEach(slider => slider.addEventListener('input', updateDashboard));
+            selectTrigger.addEventListener('click', () => { selectOptions.style.display = selectOptions.style.display === 'block' ? 'none' : 'block'; });
+            window.addEventListener('click', (e) => { if (!selectTrigger.contains(e.target)) selectOptions.style.display = 'none'; });
+            fastTrackBtn.addEventListener('click', fastTrackPopulation);
+        }
+
+        // --- Window Onload ---
+        window.onload = () => {
+            populateHeatmapGrid();
+            initializeCharts();
+            initializePopulationSimulation();
+            populateMicrobeSelector();
+            populateAllMicrobesData();
+            populateMicrobeInfo();
+            updateDashboard();
+            addEventListeners();
+        };
+    </script>
+</body>
+</html>
+
